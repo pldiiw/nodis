@@ -28,6 +28,13 @@ necessary:
 
 `install -o root -g root -t /usr/local/bin nodis nodis_update_hosts.awk`
 
+Finally, add an entry to cron to update /etc/hosts every 10 minutes (or less if
+you wish to):
+
+`{ crontab -l; echo '*/10 * * * * nodis update' } | crontab -`
+
+_Note_: Make sure that `$PATH` is defined inside crontab
+
 ## Usage
 
 Here's the detailed help for nodis:
