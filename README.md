@@ -17,6 +17,7 @@ direct futile satisfaction. As any crutch, I think it should be temporary.
 
 Dependencies:
  * awk (posix should work)
+ * grep
  * cron
 
 `clone` the repository and `cd` into it
@@ -55,6 +56,8 @@ SUBCOMMANDS:
   allow <domain>
     Remove a nodis entry
       domain     - The domain name to remove from the hosts file
+  show
+    Display all nodis entries in hosts file
   version
     Display current version
   usage
