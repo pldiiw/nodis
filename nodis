@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+
+set -eEuo pipefail
+
+on_error () {
+  kill -TERM $$
+}
+trap on_error ERR
+
+NAME='nodis'
+VERSION='0.1.0'
+USAGE=$(cat <<EOF
+Usage: nodis <SUBCOMMAND>
+
+SUBCOMMANDS:
+  update
+    Update nodis' entries inside the hosts file
+  block <domain> <start_time> <end_time>
+    Block a domain within specified time range
+      domain     - The domain name to block
+      start_time - When nodis should start to block the given domain
+      end_time   - When nodis should stop blocking the given domain
+  allow <domain>
+    Remove a nodis entry
+      domain     - The domain name to remove from the hosts file
+  version
+    Display current version
+  usage
+    Show only the different possible subcommands
+  help
+    Show the extended help
+EOF
+)
+HELP=$(cat <<EOF
+$NAME(traction) $VERSION
+
+Block websites within a daily time range.
+
+$USAGE
+
+ENVIRONMENT VARIABLES:
+  HOSTS_FILE - The path to the hosts file, defaults to /etc/hosts
+
+TIME FORMAT:
+  When specifying a time, the expected format should be parseable by
+  the date(1) command
+
+NODIS ENTRY FORMAT:
+  The format used by nodis inside the hosts file is the following:
+    127.0.0.1 <domain> ## <start_time> <end_time>
+  You can manually edit the entries if you would like to, just be
+  aware that you can write the times like this (regexp): HH.?MM
+  Examples: 1430, 03:55, 22-01, 17h23
+
+MULTIPLE TIME RANGES:
+  If you would like to block a domain for multiples time ranges, simply use the
+  block subcommand for each time range!
+EOF
+)
+HOSTS_FILE="${HOSTS_FILE:-/etc/hosts}"
+
+update_hosts () {
+  local CURRENT_TIME="$(date +%H%M)"
+  local AWK_OPTIONS="-v CURRENT_TIME=$CURRENT_TIME"
+  local NEW_HOSTS_CONTENT=""
+
+  if [[ "$(whereis nodis_update_hosts.awk)" = "nodis_update_hosts:" ]]; then
+    NEW_HOSTS_CONTENT="$(awk $AWK_OPTIONS -f nodis_update_hosts.awk < "$HOSTS_FILE")"
+  else
+    NEW_HOSTS_CONTENT="$(nodis_update_hosts.awk $AWK_OPTIONS < "$HOSTS_FILE")"
+  fi
+
+  echo "$NEW_HOSTS_CONTENT" > "$HOSTS_FILE"
+}
+
+block_domain () {
+  local DOMAIN="$1"
+  local TIME_START="$(date -d $2 +%H%M)"
+  local TIME_END="$(date -d $3 +%H%M)"
+
+  local NODIS_ENTRY="127.0.0.1 $DOMAIN ## $TIME_START $TIME_END"
+  echo "$NODIS_ENTRY" >> "$HOSTS_FILE"
+}
+
+allow_domain () {
+  local DOMAIN="$1"
+
+  local NEW_HOSTS_CONTENT="$(grep -v "$DOMAIN" "$HOSTS_FILE")"
+  echo "$NEW_HOSTS_CONTENT" > "$HOSTS_FILE"
+}
+
+main () {
+  local SUBCOMMAND="$1"
+
+  case "$SUBCOMMAND" in
+    update)
+      update_hosts
+      ;;
+    block)
+      shift
+      block_domain "$@"
+      ;;
+    allow)
+      shift
+      allow_domain "$@"
+      ;;
+    version)
+      echo "$VERSION"
+      ;;
+    help)
+      echo "$HELP"
+      ;;
+    usage)
+      echo "$USAGE"
+      ;;
+    *)
+      echo "$USAGE"
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
