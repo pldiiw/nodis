@@ -23,6 +23,8 @@ SUBCOMMANDS:
   allow <domain>
     Remove a nodis entry
       domain     - The domain name to remove from the hosts file
+  show
+    Display all nodis entries in hosts file
   version
     Display current version
   usage
@@ -59,7 +61,7 @@ EOF
 )
 HOSTS_FILE="${HOSTS_FILE:-/etc/hosts}"
 
-update_hosts () {
+_update () {
   local CURRENT_TIME="$(date +%H%M)"
   local AWK_OPTIONS="-v CURRENT_TIME=$CURRENT_TIME"
   local NEW_HOSTS_CONTENT=""
@@ -73,7 +75,7 @@ update_hosts () {
   echo "$NEW_HOSTS_CONTENT" > "$HOSTS_FILE"
 }
 
-block_domain () {
+_block () {
   local DOMAIN="$1"
   local TIME_START="$(date -d $2 +%H%M)"
   local TIME_END="$(date -d $3 +%H%M)"
@@ -82,27 +84,34 @@ block_domain () {
   echo "$NODIS_ENTRY" >> "$HOSTS_FILE"
 }
 
-allow_domain () {
+_allow () {
   local DOMAIN="$1"
 
   local NEW_HOSTS_CONTENT="$(grep -v "$DOMAIN" "$HOSTS_FILE")"
   echo "$NEW_HOSTS_CONTENT" > "$HOSTS_FILE"
 }
 
-main () {
+_show () {
+  grep -E '127.0.0.1 .* ## ([0-9]{2}.?){4}' "$HOSTS_FILE"
+}
+
+_main () {
   local SUBCOMMAND="$1"
 
   case "$SUBCOMMAND" in
     update)
-      update_hosts
+      _update
       ;;
     block)
       shift
-      block_domain "$@"
+      _block "$@"
       ;;
     allow)
       shift
-      allow_domain "$@"
+      _allow "$@"
+      ;;
+    show)
+      _show
       ;;
     version)
       echo "$VERSION"
@@ -120,4 +129,4 @@ main () {
   esac
 }
 
-main "$@"
+_main "$@"
