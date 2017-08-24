@@ -1,4 +1,4 @@
-#!/usr/bin/env awk
+#!/usr/bin/awk -f
 
 # Required environment variables
 BEGIN { CURRENT_TIME=CURRENT_TIME }
@@ -11,9 +11,11 @@ BEGIN { CURRENT_TIME=CURRENT_TIME }
   end_time = $5
   gsub(/[^0-9]/, "", end_time)
 
-  should_entry_be_active = 0
-  if (CURRENT_TIME >= start_time && CURRENT_TIME <= end_time)
-    should_entry_be_active = 1
+  should_entry_be_active = 1
+  if (start_time < end_time && !(CURRENT_TIME >= start_time && CURRENT_TIME <= end_time))
+    should_entry_be_active = 0
+  if (start_time > end_time && CURRENT_TIME >= end_time && CURRENT_TIME <= start_time)
+    should_entry_be_active = 0
 
   if (index($1, "#") == 1 && should_entry_be_active)
     print substr($0, 2)
